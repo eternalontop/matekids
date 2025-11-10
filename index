@@ -1,1 +1,733 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulación MateKids</title>
+    
+    <style>
+        /* Fuentes y configuración global */
+        @import url('https://fonts.googleapis.com/css2?family=Varela+Round&display=swap');
 
+        body {
+            font-family: 'Varela Round', sans-serif;
+            background-color: #b3e5fc; /* Fondo azul claro para la página */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        /* --- 1. SIMULADOR DE TELÉFONO --- */
+        .phone-simulator {
+            width: 390px;
+            height: 844px; /* Proporción de iPhone 12/13 */
+            background-color: #f0f8ff; /* Fondo de la app */
+            border: 16px solid #1a1a1a;
+            border-radius: 40px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Barra de estado del teléfono */
+        .status-bar {
+            padding: 0 20px;
+            height: 40px;
+            background-color: rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(10px);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+            z-index: 100;
+            flex-shrink: 0;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .phone-content {
+            flex-grow: 1;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* --- 2. PANTALLA DE INICIO (APPS) --- */
+        .phone-screen {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+            transition: transform 0.4s ease-in-out;
+        }
+
+        #phone-homescreen {
+            display: flex;
+            flex-direction: column;
+            background-color: #f0f8ff;
+        }
+
+        .app-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            padding: 20px 0;
+        }
+
+        .app-icon {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .app-icon .icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 30px;
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s ease;
+        }
+
+        .app-icon span {
+            font-size: 12px;
+            color: #333;
+            margin-top: 8px;
+        }
+        
+        .app-icon:active .icon {
+            transform: scale(0.9); /* Efecto al presionar */
+        }
+
+        /* Iconos de App */
+        .icon-matekids { background-color: #00AAB2; } /* Icono funcional */
+        .icon-fotos { background-color: #4CAF50; }
+        .icon-musica { background-color: #FF77A9; }
+        .icon-correo { background-color: #007bff; }
+        .icon-mapas { background-color: #FFC107; }
+        .icon-ajustes { background-color: #8C9EAF; }
+
+
+        /* --- 3. CONTENEDOR DE LA APP MATEKIDS --- */
+        /* Oculto por defecto, se "desliza" sobre la pantalla de inicio */
+        #matekids-app-container {
+            transform: translateX(100%);
+            background-color: #f0f8ff; /* Mismo fondo */
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- LÓGICA DE PANTALLAS INTERNAS DE MATEKIDS --- */
+        .app-screen {
+            display: none; /* Ocultar todas las pantallas por defecto */
+            flex-direction: column;
+            height: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .app-screen.active {
+            display: flex;
+        }
+
+        /* Botón para volver al Home del teléfono */
+        .phone-home-button {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-family: 'Varela Round', sans-serif;
+            position: absolute;
+            top: 15px;
+            left: 20px;
+        }
+        .phone-home-button:hover { background: #5a6268; }
+
+        /* Estilos de la app (ligeramente ajustados) */
+        .menu-header { display: flex; align-items: center; margin-bottom: 20px; margin-top: 50px; }
+        .logo-container { width: 60px; height: 60px; background-color: #00AAB2; border-radius: 15px; display: flex; justify-content: center; align-items: center; font-size: 30px; font-weight: bold; color: white; flex-shrink: 0; }
+        .title-group { margin-left: 15px; }
+        .title-group h1 { margin: 0; font-size: 24px; color: #333; }
+        .title-group p { margin: 0; color: #555; font-size: 14px; }
+        .author-tag { margin-left: auto; font-weight: bold; color: #007bff; }
+
+        .level-card { background-color: white; border-radius: 25px; padding: 20px; box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05); flex-grow: 1; }
+        .level-button { display: flex; align-items: center; width: 100%; padding: 20px; margin: 15px 0; border: none; border-radius: 20px; font-size: 22px; font-weight: bold; color: white; cursor: pointer; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); transition: transform 0.2s ease; font-family: 'Varela Round', sans-serif; box-sizing: border-box; }
+        .level-button:active { transform: scale(0.98); }
+        .level-button span { font-size: 28px; margin-right: 20px; }
+        #btn-facil { background-color: #3DDCB2; }
+        #btn-intermedio { background-color: #FDD14F; }
+        #btn-dificil { background-color: #FF77A9; }
+        .menu-footer { text-align: center; margin-top: 15px; color: #555; }
+
+        /* Pantalla de Pregunta */
+        .quiz-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .back-button { font-size: 16px; color: #007bff; cursor: pointer; font-weight: bold; }
+        #question-progress { font-size: 16px; font-weight: bold; color: #333; }
+        .question-card { background-color: white; border-radius: 25px; padding: 25px; box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05); flex-grow: 1; }
+        #question-text { font-size: 24px; font-weight: bold; color: #333; margin-bottom: 25px; min-height: 100px; line-height: 1.4; }
+        .answer-option { display: block; width: 100%; background-color: #f0f0f0; border: 2px solid #ddd; border-radius: 15px; padding: 18px; margin: 12px 0; font-size: 18px; font-weight: bold; cursor: pointer; text-align: left; transition: background-color 0.3s, border-color 0.3s; font-family: 'Varela Round', sans-serif; }
+        .answer-option:hover { background-color: #e0e0e0; }
+        
+        /* Botón de Pista */
+        #hint-button {
+            background-color: #e0e0e0;
+            color: #333;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            font-family: 'Varela Round', sans-serif;
+            margin-bottom: 15px;
+        }
+        #hint-button:disabled { background: #f0f0f0; color: #aaa; }
+        
+        /* Texto de Pista / Retroalimentación */
+        #feedback-text {
+            min-height: 40px;
+            margin-top: 10px;
+            font-size: 14px;
+            font-style: italic;
+            color: #555;
+            line-height: 1.5;
+        }
+        #feedback-text.incorrect-feedback { color: #d9534f; font-weight: bold; }
+
+        /* Retroalimentación Visual */
+        .answer-option.correct { background-color: #3DDCB2; border-color: #3DDCB2; color: white; }
+        .answer-option.incorrect { background-color: #FF77A9; border-color: #FF77A9; color: white; animation: shake 0.5s ease; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
+        .answer-option:disabled { cursor: not-allowed; opacity: 0.9; }
+        .quiz-footer { text-align: center; margin-top: 15px; color: #555; font-size: 14px; }
+
+        /* Pantalla Final */
+        #final-screen { justify-content: center; align-items: center; text-align: center; }
+        #final-emoji { font-size: 100px; margin-bottom: 20px; }
+        #final-screen h2 { font-size: 32px; color: #333; margin-bottom: 10px; }
+        
+        /* Puntuación Final */
+        #final-score {
+            font-size: 18px;
+            color: #555;
+            margin-bottom: 30px;
+        }
+        #score-correct { color: #3DDCB2; font-weight: bold; }
+        #score-incorrect { color: #FF77A9; font-weight: bold; }
+
+        .home-button { background-color: #007bff; color: white; padding: 15px 30px; font-size: 18px; font-weight: bold; border: none; border-radius: 15px; cursor: pointer; transition: background-color 0.2s; font-family: 'Varela Round', sans-serif; }
+        .home-button:hover { background-color: #0056b3; }
+
+    </style>
+</head>
+<body>
+
+    <div class="phone-simulator">
+        <div class="status-bar">
+            <span>9:41 AM</span>
+            <span>📶 🔋</span>
+        </div>
+
+        <div class="phone-content">
+
+            <div class="phone-screen" id="phone-homescreen">
+                <div class="app-grid">
+                    <div class="app-icon" id="matekids-icon">
+                        <div class="icon icon-matekids">M</div>
+                        <span>MateKids</span>
+                    </div>
+                    <div class="app-icon">
+                        <div class="icon icon-fotos">📸</div>
+                        <span>Fotos</span>
+                    </div>
+                    <div class="app-icon">
+                        <div class="icon icon-musica">🎵</div>
+                        <span>Música</span>
+                    </div>
+                    <div class="app-icon">
+                        <div class="icon icon-correo">✉️</div>
+                        <span>Correo</span>
+                    </div>
+                    <div class="app-icon">
+                        <div class="icon icon-mapas">🗺️</div>
+                        <span>Mapas</span>
+                    </div>
+                    <div class="app-icon">
+                        <div class="icon icon-ajustes">⚙️</div>
+                        <span>Ajustes</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="phone-screen" id="matekids-app-container">
+
+                <div class="app-screen active" id="menu-screen">
+                    <button class="phone-home-button" onclick="goToPhoneHome()">⏏︎ Home</button>
+                    <div class="menu-header">
+                        <div class="logo-container">M</div>
+                        <div class="title-group">
+                            <h1>MateKids</h1>
+                            <p>Ejercicios divertidos • 3° grado</p>
+                        </div>
+                        <span class="author-tag">Hecho por: Ester</span>
+                    </div>
+
+                    <div class="level-card">
+                        <button class="level-button" id="btn-facil" onclick="startQuiz('facil')">
+                            <span>🍎</span> FÁCIL
+                        </button>
+                        <button class="level-button" id="btn-intermedio" onclick="startQuiz('intermedio')">
+                            <span>✏️</span> INTERMEDIO
+                        </button>
+                        <button class="level-button" id="btn-dificil" onclick="startQuiz('dificil')">
+                            <span>🏆</span> DIFÍCIL
+                        </button>
+                        <p class="menu-footer">Toca un nivel para comenzar — 3 preguntas por nivel</p>
+                    </div>
+                </div>
+
+                <div class="app-screen" id="quiz-screen">
+                    <div class="quiz-header">
+                        <span class="back-button" onclick="showAppScreen('menu-screen')"> &lt; Volver </span>
+                        <span id="question-progress">Pregunta 1/3</span>
+                    </div>
+
+                    <div class="question-card">
+                        <h2 id="question-text">...</h2>
+                        
+                        <div id="answer-buttons">
+                            <button class="answer-option" id="answer-btn-0"></button>
+                            <button class="answer-option" id="answer-btn-1"></button>
+                            <button class="answer-option" id="answer-btn-2"></button>
+                        </div>
+                        
+                        <hr style="border:0; border-top: 1px solid #f0f0f0; margin: 20px 0;">
+                        
+                        <button id="hint-button" onclick="showHint()">💡 Pista</button>
+                        <p id="feedback-text"></p>
+
+                    </div>
+                </div>
+
+                <div class="app-screen" id="final-screen">
+                    <div id="final-emoji">🎉</div>
+                    <h2>¡Nivel Completado!</h2>
+                    <p id="final-score">
+                        Tuviste <span id="score-correct">0</span> Buenas y <span id="score-incorrect">0</span> Malas.
+                    </p>
+                    <button class="home-button" onclick="showAppScreen('menu-screen')">Volver al Menú</button>
+                </div>
+
+            </div> </div> </div>
+
+    <script>
+        
+        // --- BASE DE DATOS DE PREGUNTAS (REFORMULADAS) ---
+        const quizData = {
+            "facil": [
+                {
+                    pregunta: "¿Cuánto es 8 + 5?",
+                    opciones: [12, 14, 13],
+                    respuesta: 13,
+                    pista: "Suma los dos números. Puedes contar 5 números hacia adelante desde 8."
+                },
+                {
+                    pregunta: "¿Qué número falta? 12 - __ = 7",
+                    opciones: [5, 6, 4],
+                    respuesta: 5,
+                    pista: "Piensa, ¿cuánto necesitas quitarle a 12 para que te queden 7?"
+                },
+                {
+                    pregunta: "Cuenta las estrellas: ⭐️⭐️ + ⭐️⭐️⭐️ =",
+                    opciones: [4, 5, 6],
+                    respuesta: 5,
+                    pista: "Cuenta todas las estrellas juntas, las del primer grupo y las del segundo."
+                }
+            ],
+            "intermedio": [
+                {
+                    pregunta: "¿Cuánto es 45 ÷ 9?",
+                    opciones: [5, 6, 7],
+                    respuesta: 5,
+                    pista: "Piensa qué número, multiplicado por 9, te da 45. (9 × ? = 45)"
+                },
+                {
+                    pregunta: "Ordena de menor a mayor: 51, 29, 8, 67",
+                    opciones: ["8, 29, 51, 67", "67, 51, 29, 8", "8, 51, 29, 67"],
+                    respuesta: "8, 29, 51, 67",
+                    pista: "Busca primero el número más pequeño de todos, luego el que sigue."
+                },
+                {
+                    pregunta: "¿Perímetro de un rectángulo de 5 cm por 2 cm?",
+                    opciones: ["10 cm", "7 cm", "14 cm"],
+                    respuesta: "14 cm",
+                    pista: "El perímetro es la suma de *todos* los lados (5 + 2 + 5 + 2)."
+                }
+            ],
+            "dificil": [
+                {
+                    pregunta: "Resuelve: 6 × (3 + 5)",
+                    opciones: [48, 33, 21],
+                    respuesta: 48,
+                    pista: "Recuerda el orden: ¡primero resuelve la suma dentro del paréntesis ( )!"
+                },
+                {
+                    pregunta: "Ana tiene 4 bolsas. Cada bolsa tiene 8 canicas. ¿Cuántas canicas tiene en total?",
+                    opciones: ["12 canicas", "32 canicas", "28 canicas"],
+                    respuesta: "32 canicas",
+                    pista: "Para saber el total, debes multiplicar el número de bolsas por las canicas en cada una."
+                },
+                {
+                    pregunta: "Un jardín rectangular mide 10 m de largo y 5 m de ancho. ¿Cuál es su área?",
+                    opciones: ["30 m²", "15 m²", "50 m²"],
+                    respuesta: "50 m²",
+                    pista: "El área de un rectángulo se calcula multiplicando el largo por el ancho."
+                }
+            ]
+        };
+
+        // --- VARIABLES DE ESTADO DEL JUEGO ---
+        let currentLevel = '';
+        let currentQuestionIndex = 0;
+        let questions = [];
+        let scoreCorrect = 0;
+        let scoreIncorrect = 0;
+
+        // --- REFERENCIAS A ELEMENTOS DEL HTML ---
+        // Contenedores principales
+        const phoneHomescreen = document.getElementById('phone-homescreen');
+        const matekidsAppContainer = document.getElementById('matekids-app-container');
+        
+        // Pantallas de la App
+        const appScreens = document.querySelectorAll('.app-screen');
+        const questionTextEl = document.getElementById('question-text');
+        const questionProgressEl = document.getElementById('question-progress');
+        const answerButtons = [
+            document.getElementById('answer-btn-0'),
+            document.getElementById('answer-btn-1'),
+            document.getElementById('answer-btn-2')
+        ];
+        const hintButton = document.getElementById('hint-button');
+        const feedbackTextEl = document.getElementById('feedback-text');
+        
+        // Puntuación Final
+        const scoreCorrectEl = document.getElementById('score-correct');
+        const scoreIncorrectEl = document.getElementById('score-incorrect');
+
+        // --- NAVEGACIÓN PRINCIPAL DEL TELÉFONO ---
+        
+        // Lanzar la app MateKids desde el Home
+        document.getElementById('matekids-icon').onclick = function() {
+            matekidsAppContainer.style.transform = 'translateX(0)';
+        }
+
+        // Volver al Home del teléfono desde la app
+        function goToPhoneHome() {
+            matekidsAppContainer.style.transform = 'translateX(100%)';
+            // Resetea la app interna a su pantalla de menú
+            setTimeout(() => {
+                showAppScreen('menu-screen');
+            }, 400); // Espera que termine la animación
+        }
+
+        // --- LÓGICA INTERNA DE LA APP MATEKIDS ---
+
+        /**
+         * Muestra una pantalla específica de la app (Menú, Quiz, Final)
+         */
+        function showAppScreen(screenId) {
+            appScreens.forEach(screen => {
+                if (screen.id === screenId) {
+                    screen.classList.add('active');
+                } else {
+                    screen.classList.remove('active');
+                }
+            });
+        }
+
+        /**
+         * Inicia el cuestionario para un nivel dado
+         */
+        function startQuiz(level) {
+            currentLevel = level;
+            currentQuestionIndex = 0;
+            scoreCorrect = 0;
+            scoreIncorrect = 0;
+            questions = shuffleArray(quizData[currentLevel]);
+            loadQuestion();
+            showAppScreen('quiz-screen');
+        }
+
+        /**
+         * Carga la pregunta actual en la pantalla
+         */
+        function loadQuestion() {
+            // Reiniciar estilos de botones y retroalimentación
+            answerButtons.forEach(btn => {
+                btn.className = 'answer-option';
+                btn.disabled = false;
+            });
+            feedbackTextEl.innerText = '';
+
+feedbackTextEl.className = '';
+
+hintButton.disabled =
+
+false;
+
+// Obtener la pregunta
+
+actual
+
+const q =
+
+questions [currentQuestionIndex];
+
+// Actualizar el texto de la pregunta y el progreso
+
+questionTextEl.innerHTML =
+
+q.pregunta;
+
+questionProgress El.innerText =
+
+Pregunta ${currentQuestionIndex + 1}/${questions.length}`;
+
+// Asignar texto y
+
+función a cada botón de respuesta
+
+q.opciones.forEach((opcion, index) => {
+
+answerButtons [index].innerText opcion;
+
+answerButtons [index].onclick = () => checkAnswer (opcion, q.respuesta,
+
+answerButtons [index]);
+
+});
+
+}
+
+/**
+
+* Muestra la pista para la pregunta actual
+
+*/
+
+function showHint() {
+
+const q =
+
+questions [currentQuestionIndex];
+
+feedbackTextEl.innerText = `Pista: ${q.pista}`;
+
+feedbackTextEl.className = '';
+
+hintButton.disabled
+
+= true; // Solo una pista por
+
+pregunta
+
+}
+
+/** Comprueba si la
+
+respuesta seleccionada es correcta
+
+*/
+
+function
+
+checkAnswer(selectedOption,
+
+correctOption, buttonElement) {
+
+// Deshabilitar todos
+
+los botones
+
+answerButtons.forEach(btn =>
+
+btn.disabled = true);
+
+hintButton.disabled =
+
+true; // No más pistas
+
+const isCorrect =
+
+(selectedOption == correctOption);
+
+if (isCorrect) {
+
+//
+
+RETROALIMENTACIÓN CORRECTA
+
+buttonElement.clas
+
+sList.add('correct');
+
+feedbackTextEl.innerText =
+
+"¡Correcto! ¡Muy bien!";
+
+feedbackTextEl.className =
+
+'correct-feedback';
+
+scoreCorrect++; } else {
+
+//
+
+RETROALIMENTACIÓN INCORRECTA
+
+buttonElement.clas
+
+sList.add('incorrect');
+
+const q =
+
+questions [currentQuestionIndex];
+
+feedbackTextEl.innerHTML =
+
+¡Oh! La respuesta correcta era
+
+<strong>${correctOption}</strong>.
+
+<br><em>Pista: ${q.pista}</em>';
+
+feedbackTextEl.className =
+
+'incorrect-feedback';
+
+scoreIncorrect++;
+
+// Opcional:
+
+Resaltar la correcta
+
+answerButtons.forEach(btn => {
+
+if
+
+(btn.innerText == correctOption) {
+
+btn.classList.add('correct');
+
+}
+
+});
+
+} setTimeout(() => {
+
+currentQuestionIndex++;
+
+if
+
+(currentQuestionIndex < questions.length) {
+
+loadQuestion();
+
+} else {
+
+// Fin del
+
+cuestionario: Mostrar puntuación
+
+scoreCorrectEl.innerText =
+
+scoreCorrect;
+
+scoreIncorrectEl.innerText =
+
+scoreIncorrect;
+
+if
+
+(scoreCorrect > scoreIncorrect) {
+
+document.getElementById('f
+
+inal-emoji').innerText = '🏆' ;
+
+} else {
+
+document.getElementById('f inal-emoji').innerText = '👍' ;
+}
+
+showAppScreen('final-screen');
+
+}
+
+}, 3000); //
+
+3 segundos para leer la
+
+retroalimentación
+
+}
+
+/**
+
+LTE
+
+* Función para mezclar un array (Algoritmo Fisher-Yates)
+
+*/
+
+function
+
+shuffleArray(array) {
+
+let newArray =
+
+[...array];
+
+for (let i =
+
+newArray.length 1; i > 0; i--) {
+
+const j =
+
+Math.floor(Math.random() * (i + 1));
+
+[newArray[i],
+
+newArray[j]] = [newArray[j],
+
+newArray[i]];
+
+}
+
+return newArray;
+
+}
+}
+
+</script>
+
+</body>
+
+</html>

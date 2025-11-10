@@ -1,1 +1,548 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulación MateKids</title>
+    
+    <style>
+        /* Fuentes y configuración global */
+        @import url('https://fonts.googleapis.com/css2?family=Varela+Round&display=swap');
 
+        body {
+            font-family: 'Varela Round', sans-serif;
+            background-color: #b3e5fc; /* Fondo azul claro para la página */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* SIMULADOR DE TELÉFONO */
+        .phone-simulator {
+            width: 390px;
+            height: 844px; /* Proporción de iPhone 12/13 */
+            background-color: #f0f8ff; /* Fondo azulado de la app */
+            border: 16px solid #1a1a1a;
+            border-radius: 40px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* "Notch" o isla del teléfono para realismo */
+        .phone-simulator::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 150px;
+            height: 30px;
+            background: #1a1a1a;
+            border-bottom-left-radius: 20px;
+            border-bottom-right-radius: 20px;
+            z-index: 10;
+        }
+
+        .screen-content {
+            padding: 20px;
+            padding-top: 40px; /* Espacio para el notch */
+            height: 100%;
+            overflow-y: auto;
+            box-sizing: border-box;
+        }
+
+        /* Estructura de las pantallas */
+        .screen {
+            display: none; /* Ocultar todas las pantallas por defecto */
+            flex-direction: column;
+            height: 100%;
+        }
+
+        /* Mostrar la pantalla activa */
+        .screen.active {
+            display: flex;
+        }
+
+        /* --- 1. PANTALLA DE MENÚ (Basada en 1000417641.jpg) --- */
+        
+        .menu-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .logo-container {
+            width: 60px;
+            height: 60px;
+            background-color: #00AAB2; /* Azul/Verde del logo */
+            border-radius: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 30px;
+            font-weight: bold;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .title-group {
+            margin-left: 15px;
+        }
+
+        .title-group h1 {
+            margin: 0;
+            font-size: 24px;
+            color: #333;
+        }
+        
+        .title-group p {
+            margin: 0;
+            color: #555;
+            font-size: 14px;
+        }
+
+        .author-tag {
+            margin-left: auto;
+            font-weight: bold;
+            color: #007bff;
+        }
+
+        .level-card {
+            background-color: white;
+            border-radius: 25px;
+            padding: 20px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+            flex-grow: 1;
+        }
+
+        .level-button {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            padding: 20px;
+            margin: 15px 0;
+            border: none;
+            border-radius: 20px;
+            font-size: 22px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s ease;
+            font-family: 'Varela Round', sans-serif;
+            box-sizing: border-box;
+        }
+        
+        .level-button:active {
+            transform: scale(0.98); /* Efecto al presionar */
+        }
+
+        .level-button span {
+            font-size: 28px;
+            margin-right: 20px;
+        }
+
+        #btn-facil { background-color: #3DDCB2; }
+        #btn-intermedio { background-color: #FDD14F; }
+        #btn-dificil { background-color: #FF77A9; }
+
+        .menu-footer {
+            text-align: center;
+            margin-top: 15px;
+            color: #555;
+        }
+
+        /* --- 2. PANTALLA DE PREGUNTA (Basada en 1000417644.jpg) --- */
+
+        .quiz-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .back-button {
+            font-size: 16px;
+            color: #007bff;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        #question-progress {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .question-card {
+            background-color: white;
+            border-radius: 25px;
+            padding: 25px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+            flex-grow: 1;
+        }
+
+        #question-text {
+            font-size: 26px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 30px;
+            min-height: 100px;
+            line-height: 1.4;
+        }
+
+        .answer-option {
+            display: block;
+            width: 100%;
+            background-color: #f0f0f0;
+            border: 2px solid #ddd;
+            border-radius: 15px;
+            padding: 18px;
+            margin: 12px 0;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            text-align: left;
+            transition: background-color 0.3s, border-color 0.3s;
+            font-family: 'Varela Round', sans-serif;
+        }
+
+        .answer-option:hover {
+            background-color: #e0e0e0;
+        }
+        
+        /* --- 3. RETROALIMENTACIÓN INTERACTIVA --- */
+
+        /* Clase para respuesta correcta */
+        .answer-option.correct {
+            background-color: #3DDCB2; /* Verde */
+            border-color: #3DDCB2;
+            color: white;
+        }
+
+        /* Clase para respuesta incorrecta */
+        .answer-option.incorrect {
+            background-color: #FF77A9; /* Rosa/Rojo */
+            border-color: #FF77A9;
+            color: white;
+            animation: shake 0.5s ease; /* Animación de vibrar */
+        }
+        
+        /* Animación de vibrar para respuesta incorrecta */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-8px); }
+            40%, 80% { transform: translateX(8px); }
+        }
+
+        /* Deshabilitar botones después de responder */
+        .answer-option:disabled {
+            cursor: not-allowed;
+            opacity: 0.9;
+        }
+
+        .quiz-footer {
+            text-align: center;
+            margin-top: 15px;
+            color: #555;
+            font-size: 14px;
+        }
+
+        /* --- 4. PANTALLA FINAL --- */
+        #final-screen {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        #final-emoji {
+            font-size: 100px;
+            margin-bottom: 20px;
+        }
+
+        #final-screen h2 {
+            font-size: 32px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        #final-screen p {
+            font-size: 18px;
+            color: #555;
+            margin-bottom: 30px;
+        }
+
+        .home-button {
+            background-color: #007bff;
+            color: white;
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-family: 'Varela Round', sans-serif;
+        }
+
+        .home-button:hover {
+            background-color: #0056b3;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="phone-simulator">
+        <div class="screen-content">
+
+            <div class="screen active" id="menu-screen">
+                <div class="menu-header">
+                    <div class="logo-container">M</div>
+                    <div class="title-group">
+                        <h1>MateKids</h1>
+                        <p>Ejercicios divertidos • 3° grado</p>
+                    </div>
+                    <span class="author-tag">Hecho por: Ester</span>
+                </div>
+
+                <div class="level-card">
+                    <button class="level-button" id="btn-facil" onclick="startQuiz('facil')">
+                        <span>🍎</span> FÁCIL
+                    </button>
+                    <button class="level-button" id="btn-intermedio" onclick="startQuiz('intermedio')">
+                        <span>✏️</span> INTERMEDIO
+                    </button>
+                    <button class="level-button" id="btn-dificil" onclick="startQuiz('dificil')">
+                        <span>🏆</span> DIFÍCIL
+                    </button>
+                    
+                    <p class="menu-footer">Toca un nivel para comenzar — 3 preguntas por nivel</p>
+                </div>
+            </div>
+
+            <div class="screen" id="quiz-screen">
+                <div class="quiz-header">
+                    <span class="back-button" onclick="goHome()"> &lt; Volver </span>
+                    <span id="question-progress">Pregunta 1/3</span>
+                </div>
+
+                <div class="question-card">
+                    <h2 id="question-text">Cuenta las manzanas: 🍎 + 🍎🍎 = ?</h2>
+                    
+                    <div id="answer-buttons">
+                        <button class="answer-option" id="answer-btn-0"></button>
+                        <button class="answer-option" id="answer-btn-1"></button>
+                        <button class="answer-option" id="answer-btn-2"></button>
+                    </div>
+
+                    <p class="quiz-footer">Toca la respuesta correcta — mensajes de ánimo al final</p>
+                </div>
+            </div>
+
+            <div class="screen" id="final-screen">
+                <div id="final-emoji">🎉</div>
+                <h2>¡Nivel Completado!</h2>
+                <p>¡Excelente trabajo! Sigue así.</p>
+                <button class="home-button" onclick="goHome()">Volver al Menú</button>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        
+        // --- BASE DE DATOS DE PREGUNTAS ---
+        // Basadas en tu imagen 1000417657.jpg
+        const quizData = {
+            "facil": [
+                {
+                    pregunta: "¿Cuánto es 4 + 7?",
+                    opciones: [10, 11, 12],
+                    respuesta: 11
+                },
+                {
+                    pregunta: "¿Qué número falta? 9 - __ = 5",
+                    opciones: [3, 4, 5],
+                    respuesta: 4
+                },
+                {
+                    pregunta: "Cuenta los objetos: 🍎 + 🍎🍎 =",
+                    opciones: [4, 3, 2],
+                    respuesta: 3
+                }
+            ],
+            "intermedio": [
+                {
+                    pregunta: "¿Cuánto es 36 ÷ 6?",
+                    opciones: [5, 6, 7],
+                    respuesta: 6
+                },
+                {
+                    pregunta: "Ordena de menor a mayor: 42, 18, 75, 33",
+                    opciones: ["18, 42, 33, 75", "18, 33, 42, 75", "75, 42, 33, 18"],
+                    respuesta: "18, 33, 42, 75"
+                },
+                {
+                    pregunta: "¿Cuánto mide el perímetro de un rectángulo de 4 cm por 3 cm?",
+                    opciones: ["12 cm", "14 cm", "7 cm"],
+                    respuesta: "14 cm"
+                }
+            ],
+            "dificil": [
+                {
+                    pregunta: "Resuelve: 7 × (4 + 2)",
+                    opciones: [30, 42, 54],
+                    respuesta: 42
+                },
+                {
+                    pregunta: "Un camión lleva 5 cajas. Cada caja pesa 12 kg. ¿Cuánto pesa todo en total?",
+                    opciones: ["17 kg", "50 kg", "60 kg"],
+                    respuesta: "60 kg"
+                },
+                {
+                    pregunta: "Un terreno rectangular mide 8 m de largo y 6 m de ancho. ¿Cuál es su área?",
+                    opciones: ["28 m²", "48 m²", "14 m²"],
+                    respuesta: "48 m²"
+                }
+            ]
+        };
+
+        // --- VARIABLES DE ESTADO DEL JUEGO ---
+        let currentLevel = '';
+        let currentQuestionIndex = 0;
+        let questions = [];
+
+        // --- REFERENCIAS A ELEMENTOS DEL HTML ---
+        const screens = document.querySelectorAll('.screen');
+        const questionTextEl = document.getElementById('question-text');
+        const questionProgressEl = document.getElementById('question-progress');
+        const answerButtons = [
+            document.getElementById('answer-btn-0'),
+            document.getElementById('answer-btn-1'),
+            document.getElementById('answer-btn-2')
+        ];
+
+        // --- FUNCIONES PRINCIPALES ---
+
+        /**
+         * Muestra una pantalla específica y oculta las demás
+         */
+        function showScreen(screenId) {
+            screens.forEach(screen => {
+                if (screen.id === screenId) {
+                    screen.classList.add('active');
+                } else {
+                    screen.classList.remove('active');
+                }
+            });
+        }
+
+        /**
+         * Vuelve a la pantalla de menú principal
+         */
+        function goHome() {
+            showScreen('menu-screen');
+        }
+
+        /**
+         * Inicia el cuestionario para un nivel dado
+         */
+        function startQuiz(level) {
+            currentLevel = level;
+            currentQuestionIndex = 0;
+            // Mezclamos las preguntas del nivel para que salgan en orden aleatorio
+            questions = shuffleArray(quizData[currentLevel]);
+            loadQuestion();
+            showScreen('quiz-screen');
+        }
+
+        /**
+         * Carga la pregunta actual en la pantalla
+         */
+        function loadQuestion() {
+            // Reiniciar estilos de botones
+            answerButtons.forEach(btn => {
+                btn.className = 'answer-option'; // Resetea clases (correct/incorrect)
+                btn.disabled = false; // Habilita botones
+            });
+
+            // Obtener la pregunta actual
+            const q = questions[currentQuestionIndex];
+
+            // Actualizar el texto de la pregunta y el progreso
+            questionTextEl.innerHTML = q.pregunta; // Usamos innerHTML por los emojis 🍎
+            questionProgressEl.innerText = `Pregunta ${currentQuestionIndex + 1}/${questions.length}`;
+
+            // Asignar texto y función a cada botón de respuesta
+            q.opciones.forEach((opcion, index) => {
+                answerButtons[index].innerText = opcion;
+                answerButtons[index].onclick = () => checkAnswer(opcion, q.respuesta, answerButtons[index]);
+            });
+        }
+
+        /**
+         * Comprueba si la respuesta seleccionada es correcta
+         */
+        function checkAnswer(selectedOption, correctOption, buttonElement) {
+            // Deshabilitar todos los botones para evitar doble clic
+            answerButtons.forEach(btn => btn.disabled = true);
+            
+            const isCorrect = (selectedOption == correctOption); // '==' compara valor (ej: "3" == 3)
+
+            if (isCorrect) {
+                // RETROALIMENTACIÓN CORRECTA
+                buttonElement.classList.add('correct');
+                // Opcional: Sonido de acierto
+                // new Audio('correct.mp3').play();
+            } else {
+                // RETROALIMENTACIÓN INCORRECTA
+                buttonElement.classList.add('incorrect'); // Se pone rojo y vibra
+                // Opcional: Sonido de error
+                // new Audio('wrong.mp3').play();
+                
+                // Opcional: Resaltar la correcta si falla
+                answerButtons.forEach(btn => {
+                    if (btn.innerText == correctOption) {
+                        setTimeout(() => {
+                           btn.classList.add('correct'); // Muestra la correcta en verde
+                        }, 300);
+                    }
+                });
+            }
+
+            // Esperar un momento para que el usuario vea la retroalimentación
+            setTimeout(() => {
+                currentQuestionIndex++;
+                if (currentQuestionIndex < questions.length) {
+                    // Cargar siguiente pregunta
+                    loadQuestion();
+                } else {
+                    // Fin del cuestionario
+                    showScreen('final-screen');
+                }
+            }, 1500); // 1.5 segundos de espera
+        }
+
+        /**
+         * Función para mezclar un array (Algoritmo Fisher-Yates)
+         * Esto hace que las preguntas no salgan siempre en el mismo orden.
+         */
+        function shuffleArray(array) {
+            let newArray = [...array]; // Copiar el array
+            for (let i = newArray.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+            }
+            return newArray;
+        }
+
+    </script>
+
+</body>
+  </html>
+  
